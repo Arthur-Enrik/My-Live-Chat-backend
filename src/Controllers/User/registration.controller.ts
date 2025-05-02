@@ -28,10 +28,9 @@ const registerController = async (req: Request<{ body: IUserRegisterRequest }>, 
         if (!data.success) {
             res.status(400).json(data)
             return
-        } else if (data.success) {
-            res.status(201).json(data)
-            return
         }
+
+        res.status(201).json(data)
     } catch (error) {
         res.status(500).json(error)
         return

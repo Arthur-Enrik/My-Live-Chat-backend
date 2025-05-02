@@ -86,24 +86,40 @@ class UserServices {
         }
     }
 
-    get = async (_id: string): Promise<GetResponse> => {
+    getByEmail = async (email: string): Promise<GetResponse> => {
         try {
-            const user = await User.findById(_id)
-            if (!user) {
-                return {
-                    success: false,
-                    message: 'Usuário não encontrado'
-                } as GetResponse
-            } else {
-                return {
-                    success: true,
-                    user: { username: user.username, email: user.email, _id: user._id }
-                } as GetResponse
-            }
+            const users = await User.find({ email: { $regex: email, $options: 'i' } }).select('-_id -__v').lean();
+
+            return {
+                success: true,
+                users: users || [],
+            } as GetResponse
+
         } catch (error) {
             console.log(error)
             throw new Error('Ocorreu um erro no servidor')
         }
+
+    }
+    getById = async (_id: string): Promise<GetResponse> => {
+        try {
+            const user = await User.findById(_id)
+
+            if (!user) return {
+                success: false,
+                message: 'Usuário não encontrado',
+                err: "NOT_FOUND"
+            } as GetResponse
+
+            return {
+                success: true,
+                user: user || {}
+            } as GetResponse
+        } catch (error) {
+            console.log(error)
+            throw new Error('Ocorreu um erro no servidor')
+        }
+
     }
 }
 

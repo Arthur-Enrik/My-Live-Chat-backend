@@ -2,7 +2,7 @@
 
 export interface BaseResponse {
     success: boolean;
-    message: string
+    message?: string
     err?: 'AUTH_ERR' | 'CONFLICT' | 'SERVER_ERR' | 'NOT_FOUND'
 }
 
@@ -12,7 +12,8 @@ export interface AuthorizeResponse extends BaseResponse {
 }
 
 export interface GetResponse extends BaseResponse {
-    user: { username: string, email: string, _id: string }
+    users?: Array<{ username: string, email: string }>
+    user?: { username: string, email: string }
 }
 
 export interface GetContactsResponse extends BaseResponse {

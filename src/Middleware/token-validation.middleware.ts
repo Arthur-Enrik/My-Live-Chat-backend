@@ -31,7 +31,7 @@ const tokenValidation = async (req: Request, res: Response, next: NextFunction) 
         const payload = validateToken(token) as IPayload
 
         const User = new UserServices()
-        const data = await User.get(payload._id)
+        const data = await User.getById(payload._id)
 
         if (!data.user) {
             res.status(401).json({ message: 'Token invalido' })
