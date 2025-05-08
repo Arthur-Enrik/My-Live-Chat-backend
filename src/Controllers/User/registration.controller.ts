@@ -1,41 +1,48 @@
-import { Request, Response } from 'express'
+import { Request, Response } from "express";
 
-import { UserServices } from '../../Services/User/user.service.js'
-import { userValidation } from '../../Utils/validation.utils.js'
+//Services
+import { UserServices } from "../../Services/User/user.service.js";
+import { registerBodyValidation } from "../../Utils/validation.utils.js";
+import { zodErrorHandler } from "../../Utils/zod-error-handler.utils.js";
 
-import { IUserRegisterRequest } from '../../Interface/IUser.interface.js'
+//Interfaces
+import { ZodError } from "zod";
+import { IUserRegisterRequest } from "../../Interface/IUser.interface.js";
 
-const registerController = async (req: Request<{ body: IUserRegisterRequest }>, res: Response): Promise<void> => {
-    if (!req.body) {
-        res.sendStatus(400)
-        return
+const registerController = async (
+  req: Request<{}, {}, IUserRegisterRequest>,
+  res: Response
+): Promise<void> => {
+  try {
+    registerBodyValidation.parse(req.body);
+
+    const { username, email, password } = req.body;
+    const data = await UserServices.register(
+      username.trim(),
+      email.trim().toLowerCase(),
+      password.trim()
+    );
+
+    if (!data.success) {
+      if (data.err === "CONFLICT") {
+        res.status(409).json(data);
+        return;
+      } else {
+        res.status(500).json(data);
+        return;
+      }
     }
-    if (!req.body.username) {
-        res.status(400).json(['Nome de usuário e um campo obrigatório'])
-        return
+
+    res.status(201).json(data);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const data = zodErrorHandler(error);
+      res.status(422).json(data);
     } else {
-        const { error } = userValidation.validate(req.body, { abortEarly: false })
-        if (error) {
-            const details = error.details.map(e => e.message)
-            res.status(400).json(details)
-            return
-        }
+      console.error(error);
+      res.sendStatus(500);
     }
-    const { username, email, password } = req.body as IUserRegisterRequest
-    const User = new UserServices()
-    try {
-        const data = await User.register(username, email, password)
-        if (!data.success) {
-            res.status(400).json(data)
-            return
-        }
+  }
+};
 
-        res.status(201).json(data)
-    } catch (error) {
-        res.status(500).json(error)
-        return
-    }
-
-}
-
-export { registerController }
+export { registerController };

@@ -3,14 +3,11 @@ import { UserContactsServices } from '../../Services/Chat/chats.service.js'
 
 const createUserChat = async (req: Request, res: Response): Promise<void> => {
     const _id = req.user?._id as string
-    if (!req.body) {
-        res.sendStatus(400)
-        return
-    } else if (!req.body.nickname || !req.body.email) {
+    if (!req.body || !req.body.email) {
         res.sendStatus(400)
         return
     } else if (!req.user || !req.user?._id) {
-        res.sendStatus(401)
+        res.sendStatus(500)
         return
     }
     const User = new UserContactsServices()

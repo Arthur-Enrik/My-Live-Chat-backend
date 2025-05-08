@@ -1,126 +1,122 @@
-import { IUser } from "../../Interface/IUser.interface.js"
+// Services
+import { User } from "../../Model/user.model.js";
+import { Response } from "../../Utils/services-response.utils.js";
 
-import { BaseResponse } from "../../Interface/IUserServicesTypes.interface.js"
-import { AuthorizeResponse } from "../../Interface/IUserServicesTypes.interface.js"
-import { GetResponse } from "../../Interface/IUserServicesTypes.interface.js"
+// Interfaces
+import { IUser } from "../../Interface/IUser.interface.js";
+import { Response as IResponse } from "../../Interface/IResponse.interface.js";
 
-import { User } from "../../Model/user.model.js"
-
-import { hash, compare, genSalt } from 'bcrypt'
-import { genToken } from "../../Utils/gen-token.utils.js"
-import { v4 } from "uuid"
+// Dependencies
+import { hash, compare, genSalt } from "bcrypt";
+import { v4 } from "uuid";
+import { genToken } from "../../Utils/gen-token.utils.js";
 
 class UserServices {
-    register = async (username: string, email: string, password: string): Promise<BaseResponse> => {
-        try {
-            const userExist = await User.findOne({ email: email }).lean()
-            if (userExist) {
-                return {
-                    success: false,
-                    message: 'Este email já está em uso!'
-                } as BaseResponse
-            }
+  static register = async (
+    username: string,
+    email: string,
+    password: string
+  ): Promise<IResponse> => {
+    try {
+      const userExist = await User.findOne({ email: email }).lean();
+      if (userExist) {
+        return Response.error(
+          "Esté e-mail já está em uso!, Tente recuperar a senha",
+          "CONFLICT"
+        );
+      }
 
-            const salt: string = await genSalt(10)
-            const passwordHash: string = await hash(password, salt)
+      const salt: string = await genSalt(10);
+      const passwordHash: string = await hash(password, salt);
 
-            const _id: string = v4()
-            await User.create({ _id, username, email, password: passwordHash })
+      const _id: string = v4();
+      await User.create({ _id, username, email, password: passwordHash });
 
-            return {
-                success: true,
-                message: 'Usuario cadastrado com sucesso!'
-            } as BaseResponse
-        } catch (error) {
-            console.log(error)
-            throw new Error('Ocorreu um erro no servidor')
-        }
+      return Response.success("Usuário cadastrado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      return Response.error(
+        "Ocorreu um erro no servidor. Tente novamente mais tarde",
+        "SERVER_ERR"
+      );
     }
+  };
 
-    authorize = async (email: string, password: string): Promise<AuthorizeResponse> => {
-        try {
-            const user = await User.findOne({ email: email }).select('+password').lean() as IUser
+  static authorize = async (
+    email: string,
+    password: string
+  ): Promise<IResponse> => {
+    try {
+      const user = (await User.findOne({ email: email })
+        .select("+password")
+        .lean()) as IUser;
 
-            if (!user) {
-                return {
-                    success: false,
-                    message: 'Usuário não encontrado'
-                } as AuthorizeResponse
-            }
+      if (!user) {
+        return Response.error("Usuário não encontrado", "NOT_FOUND");
+      }
 
-            if (!(await compare(password, user.password))) {
-                return {
-                    success: false,
-                    err: 'AUTH_ERR',
-                    message: 'Senha incorreta'
-                } as AuthorizeResponse
-            } else {
-                const token = genToken(user._id, user.email)
-                return {
-                    success: true,
-                    message: 'Usuario autenticado',
-                    token,
-                    user: { username: user.username, _id: user._id }
-                } as AuthorizeResponse
-            }
-        } catch (error) {
-            throw new Error('Ocorreu um erro no servidor')
-        }
+      if (!(await compare(password, user.password))) {
+        return Response.error("Senha incorreta", "AUTH_ERR");
+      }
+      const token = genToken(user._id, user.email);
+      return Response.success("Usuário autenticado", {
+        token: token,
+        user: { username: user.username, _id: user._id },
+      });
+    } catch (error) {
+      console.error(error);
+      return Response.error(
+        "Ocorreu um erro no servidor. Tente novamente mais tarde",
+        "SERVER_ERR"
+      );
     }
+  };
 
-    delete = async (_id: string): Promise<BaseResponse> => {
-        try {
-            const userDeleted = await User.findByIdAndDelete(_id)
-            if (!userDeleted) {
-                return {
-                    success: false,
-                    message: 'Usuario não encontrado'
-                } as BaseResponse
-            }
-            return {
-                success: true,
-                message: 'Usuario deletado com sucesso!'
-            } as BaseResponse
-        } catch (error) {
-            throw new Error('Ocorreu um erro no servidor')
-        }
+  static delete = async (_id: string): Promise<IResponse> => {
+    try {
+      const userDeleted = await User.findByIdAndDelete(_id);
+      if (!userDeleted) {
+        return Response.error("Usuário não encontrado", "NOT_FOUND");
+      }
+      return Response.success("Usuário deletado!");
+    } catch (error) {
+      return Response.error(
+        "Ocorreu um erro no servidor. Tente novamente mais tarde",
+        "SERVER_ERR"
+      );
     }
+  };
 
-    getByEmail = async (email: string): Promise<GetResponse> => {
-        try {
-            const users = await User.find({ email: { $regex: email, $options: 'i' } }).select('-_id -__v').lean();
+  static findByEmail = async (email: string): Promise<IResponse> => {
+    try {
+      const users = await User.find({ email: { $regex: email, $options: "i" } })
+        .select("-_id -__v")
+        .lean();
 
-            return {
-                success: true,
-                users: users || [],
-            } as GetResponse
-
-        } catch (error) {
-            console.log(error)
-            throw new Error('Ocorreu um erro no servidor')
-        }
-
+      return Response.success("Usuários encontrado", { users });
+    } catch (error) {
+      console.error(error);
+      return Response.error(
+        "Ocorreu um erro no servidor. Tente novamente mais tarde",
+        "SERVER_ERR"
+      );
     }
-    getById = async (_id: string): Promise<GetResponse> => {
-        try {
-            const user = await User.findById(_id)
+  };
+  static findById = async (_id: string): Promise<IResponse> => {
+    try {
+      const user = await User.findById(_id).select("-password").lean();
 
-            if (!user) return {
-                success: false,
-                message: 'Usuário não encontrado',
-                err: "NOT_FOUND"
-            } as GetResponse
+      if (!user) return Response.error("Usuário não encontrado", "NOT_FOUND");
 
-            return {
-                success: true,
-                user: user || {}
-            } as GetResponse
-        } catch (error) {
-            console.log(error)
-            throw new Error('Ocorreu um erro no servidor')
-        }
-
+      return Response.success("Usuário encontrado", { user });
+    } catch (error) {
+      console.error(error);
+      return Response.error(
+        "Ocorreu um erro no servidor. Tente novamente mais tarde",
+        "SERVER_ERR"
+      );
     }
+  };
 }
 
-export { UserServices }
+export { UserServices };

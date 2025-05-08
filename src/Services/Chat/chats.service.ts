@@ -1,109 +1,98 @@
-import { User } from "../../Model/user.model.js"
+import { User } from "../../Model/user.model.js";
 
-import { BaseResponse } from "../../Interface/IUserServicesTypes.interface.js"
-import { GetContactsResponse } from '../../Interface/IUserServicesTypes.interface.js'
+import { Response } from "../../Utils/services-response.utils.js";
 
-import { parseChats } from "../../Utils/parseChat.utils.js"
-import { io } from "../../server.js"
+import { parseChats } from "../../Utils/parseChat.utils.js";
+import { io } from "../../server.js";
 
 class UserContactsServices {
-    add = async (adderId: string, email: string, nickname?: string): Promise<BaseResponse> => {
-        try {
+  add = async (
+    adderId: string,
+    email: string,
+    nickname?: string
+  ): Promise<Response> => {
+    try {
+      const adderUser = await User.findById(adderId).select("+chats");
+      const toAddUser = await User.findOne({ email: email }).select("+chats");
 
-            const adderUser = await User.findById(adderId).select('+chats')
-            const toAddUser = await User.findOne({ email: email }).select('+chats')
+      if (!adderUser)
+        return Response.error("Usuário não encontrado", "NOT_FOUND");
+      if (!toAddUser)
+        return Response.error("Usuário não encontrado", "NOT_FOUND");
 
-            if (!adderUser) return {
-                success: false,
-                message: 'Id do usuário invalida',
-                err: 'NOT_FOUND'
-            } as BaseResponse
-            if (!toAddUser) return {
-                success: false,
-                message: 'Esse email não está cadastrado',
-                err: 'NOT_FOUND'
-            } as BaseResponse
+      const existentChats = Object.keys(parseChats(adderUser.chats));
+      if (existentChats.some((item) => item === toAddUser._id))
+        return Response.error("Esse usuário já foi adicionado!", "CONFLICT");
 
-            const existentChats = Object.keys(parseChats(adderUser.chats))
-            if (existentChats.some((item) => item === toAddUser._id)) return {
-                success: false,
-                message: 'Você já adicionou esse usuário',
-                err: "CONFLICT"
-            } as BaseResponse
-            // Adicionar uma verificação de duplicidade de nickname
+      adderUser.chats.set(toAddUser._id, {
+        _id: toAddUser._id,
+        username: toAddUser.username,
+        nickname: nickname ? nickname : undefined,
+      });
+      toAddUser.chats.set(adderUser._id, {
+        _id: adderUser._id,
+        username: adderUser.username,
+      });
 
-            adderUser.chats.set(toAddUser._id, {
-                _id: toAddUser._id,
-                username: toAddUser.username,
-                nickname: nickname ? nickname : undefined,
-            })
-            toAddUser.chats.set(adderUser._id, {
-                _id: adderUser._id,
-                username: adderUser.username,
-            })
+      await adderUser.save();
+      await toAddUser.save();
 
-            await adderUser.save()
-            await toAddUser.save()
+      io.to(adderUser._id).emit("chatHasBeenUpdated");
+      io.to(toAddUser._id).emit("chatHasBeenUpdated");
 
-
-            io.to(adderUser._id).emit('chatHasBeenUpdated', parseChats(adderUser.chats))
-            io.to(toAddUser._id).emit('chatHasBeenUpdated', parseChats(toAddUser.chats))
-
-            return {
-                success: true,
-                message: 'Chat cadastrado com sucesso!'
-            } as BaseResponse
-
-        } catch (error) {
-            console.log(error)
-            throw new Error('Ocorreu um erro no servidor, tente novamente mais tarde')
-        }
+      return Response.success("Usuário adicionado com sucesso!");
+    } catch (error) {
+      console.log(error);
+      throw new Error(
+        "Ocorreu um erro no servidor, tente novamente mais tarde"
+      );
     }
-    get = async (_id: string): Promise<GetContactsResponse | BaseResponse> => {
-        try {
-            const user = await User.findById(_id).select('+chats')
-            if (!user) return {
-                success: false,
-                message: 'Usuário não encontrado',
-                err: "NOT_FOUND"
-            } as BaseResponse
+  };
+  get = async (_id: string): Promise<Response> => {
+    try {
+      const user = await User.findById(_id).select("+chats");
+      if (!user) return Response.error("Usuário não encontrado", "NOT_FOUND");
 
-            return {
-                success: true,
-                message: 'Chats encontrado com sucesso!',
-                chats: parseChats(user.chats)
-            } as GetContactsResponse
-
-        } catch (error) {
-            console.log(error)
-            throw new Error('Ocorreu um erro no servidor, tente novamente mais tarde')
-        }
+      return Response.success("", { chats: parseChats(user.chats) });
+    } catch (error) {
+      console.log(error);
+      throw new Error(
+        "Ocorreu um erro no servidor, tente novamente mais tarde"
+      );
     }
-    save = async (senderId: string, receiverId: string, message: string) => {
-        try {
-            const senderUser = await User.findById(senderId).select('+chats')
-            const receiverUser = await User.findById(receiverId).select('+chats')
+  };
+  save = async (senderId: string, receiverId: string, message: string) => {
+    try {
+      const senderUser = await User.findById(senderId).select("+chats");
+      const receiverUser = await User.findById(receiverId).select("+chats");
 
-            if (!senderUser || !receiverUser) return
+      if (!senderUser || !receiverUser) return;
 
-            const senderChat = senderUser.chats.get(receiverId)
-            const receiverChat = receiverUser.chats.get(senderId)
+      const senderChat = senderUser.chats.get(receiverId);
+      const receiverChat = receiverUser.chats.get(senderId);
 
-            if (!senderChat || !receiverChat) return
+      if (!senderChat || !receiverChat) return;
 
-            senderChat.messages?.push({ message, isOwner: true, id: crypto.randomUUID() })
-            receiverChat.messages?.push({ message, isOwner: false, id: crypto.randomUUID() })
+      senderChat.messages?.push({
+        message,
+        isOwner: true,
+        id: crypto.randomUUID(),
+      });
+      receiverChat.messages?.push({
+        message,
+        isOwner: false,
+        id: crypto.randomUUID(),
+      });
 
-            senderUser.chats.set(receiverId, senderChat)
-            receiverUser.chats.set(senderId, receiverChat)
+      senderUser.chats.set(receiverId, senderChat);
+      receiverUser.chats.set(senderId, receiverChat);
 
-            await senderUser?.save()
-            await receiverUser?.save()
-
-        } catch (error) {
-            console.log(error)
-        }
+      await senderUser?.save();
+      await receiverUser?.save();
+    } catch (error) {
+      console.log(error);
     }
+  };
 }
 
-export { UserContactsServices }
+export { UserContactsServices };
