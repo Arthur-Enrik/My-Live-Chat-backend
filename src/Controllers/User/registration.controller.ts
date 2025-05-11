@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
 
-//Services
-import { UserServices } from "../../Services/User/user.service.js";
+// Utils
 import { registerBodyValidation } from "../../Utils/validation.utils.js";
 import { zodErrorHandler } from "../../Utils/zod-error-handler.utils.js";
+import { Response as ResponseUtils } from "../../Utils/services-response.utils.js";
+
+//Services
+import { UserServices } from "../../Services/User/user.service.js";
 
 //Interfaces
 import { ZodError } from "zod";
@@ -40,7 +43,14 @@ const registerController = async (
       res.status(422).json(data);
     } else {
       console.error(error);
-      res.sendStatus(500);
+      res
+        .status(500)
+        .json(
+          ResponseUtils.error(
+            "Ocorreu um erro no servidor, Tente novamente mais tarde",
+            "SERVER_ERR"
+          )
+        );
     }
   }
 };

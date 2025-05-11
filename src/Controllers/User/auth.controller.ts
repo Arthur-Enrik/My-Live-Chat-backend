@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
-
-import { loginBodyValidation } from "../../Utils/validation.utils.js";
-
 import { IUserAuthRequest } from "../../Interface/IUser.interface.js";
+
+// Utils
+import { loginBodyValidation } from "../../Utils/validation.utils.js";
+import { Response as ResponseUtils } from "../../Utils/services-response.utils.js";
+
+// Services
 import { UserServices } from "../../Services/User/user.service.js";
 
 const authorizeController = async (
@@ -36,7 +39,14 @@ const authorizeController = async (
     res.status(200).json(data);
   } catch (error) {
     console.error(error);
-    res.sendStatus(500);
+    res
+      .status(500)
+      .json(
+        ResponseUtils.error(
+          "Ocorreu um erro no servidor, Tente novamente mais tarde",
+          "SERVER_ERR"
+        )
+      );
   }
 };
 
