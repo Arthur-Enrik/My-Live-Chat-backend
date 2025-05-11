@@ -15,7 +15,7 @@ const registerController = async (
 ): Promise<void> => {
   try {
     registerBodyValidation.parse(req.body);
-
+    // Adicionar classe para intermediar erros
     const { username, email, password } = req.body;
     const data = await UserServices.register(
       username.trim(),
