@@ -2,7 +2,7 @@ import { User } from "../../Model/user.model.js";
 
 import { Response } from "../../Utils/services-response.utils.js";
 
-import { parseChats } from "../../Utils/parseChat.utils.js";
+import { parseChats } from "../../Utils/parse-chat.utils.js";
 import { io } from "../../server.js";
 
 class UserContactsServices {
