@@ -1,13 +1,14 @@
-import express from 'express'
+import express from "express";
 
-const ChatRoute = express.Router()
+const ChatRoute = express.Router();
 
-import { tokenValidation } from '../../Middleware/token-validation.middleware.js'
+import { tokenValidation } from "../../Middleware/token-validation.middleware.js";
 
-import { createUserChat } from '../../Controllers/Chats/create-chat.controller.js'
-import { getUserChat } from '../../Controllers/Chats/get-chat.controller.js'
+import { createUserChat } from "../../Controllers/Chats/create-chat.controller.js";
+import { getUserChat } from "../../Controllers/Chats/get-chat.controller.js";
 
-ChatRoute.post('/', tokenValidation, createUserChat)
-ChatRoute.get('/', tokenValidation, getUserChat)
+ChatRoute.post("/", tokenValidation, createUserChat);
+ChatRoute.get("/", tokenValidation, getUserChat);
+// ChatRoute.delete('/', tokenValidation, )
 
-export { ChatRoute }
+export { ChatRoute };
