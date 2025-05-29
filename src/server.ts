@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
-import morgan from "morgan";
+// import morgan from "morgan";
 import path from "path";
 import { Server } from "socket.io";
 import { createServer } from "http";
@@ -24,7 +24,8 @@ export const io = new Server(server, {
 
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(process.cwd(), "public", "frontend")));
+// app.use(morgan("dev"));
+app.use(express.static(path.join(process.cwd(), "public")));
 app.use(router);
 app.use(notFound);
 
