@@ -18,12 +18,12 @@ const app = express();
 const server = createServer(app);
 export const io = new Server(server, {
 	cors: {
-		origin: "http://localhost:5173",
+		origin: "*",
 	},
 });
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: "*" }));
 // app.use(morgan("dev"));
 app.use(express.static(path.join(process.cwd(), "public")));
 app.use(router);
