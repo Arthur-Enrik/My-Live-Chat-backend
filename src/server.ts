@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
-// import morgan from "morgan";
+import morgan from "morgan";
 import path from "path";
 import { Server } from "socket.io";
 import { createServer } from "http";
@@ -9,7 +9,7 @@ import { createServer } from "http";
 import { conn } from "./Database/conn.js";
 import { router } from "./Routes/routes.js";
 import { socketHandler } from "./SocketHandler/socket-handler.js";
-import { notFound } from "./Middleware/page-not-found.middleware.js";
+import { serverFrontend } from "./Controllers/frontend.controller.js";
 import { validateToken } from "./Middleware/token-validation-socket.middleware.js";
 
 dotenv.config();
@@ -25,9 +25,9 @@ export const io = new Server(server, {
 app.use(express.json());
 app.use(cors({ origin: "*" }));
 // app.use(morgan("dev"));
+app.use("/api", router);
 app.use(express.static(path.join(process.cwd(), "public")));
-app.use(router);
-app.use(notFound);
+app.use(serverFrontend);
 
 const serverStart = async () => {
 	const PORT = process.env.PORT as string;
